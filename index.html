@@ -3,246 +3,263 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>桃花谷（车评）</title>
+    <title>提交车评公榜</title>
+    <!-- 正确 Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* 基础样式重置 */
+        :root {
+            --bg: var(--tg-theme-bg-color, #f5f5f5);
+            --text: var(--tg-theme-text-color, #222);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #ffffff);
+            --hint: var(--tg-theme-hint-color, #999);
+            --button-bg: var(--tg-theme-button-color, #FFB6C1);
+            --button-text: var(--tg-theme-button-text-color, #fff);
+            --border: var(--tg-theme-secondary-bg-color, #ddd);
+        }
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-
-        body {
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            padding: 15px; 
+            margin: 0;
             min-height: 100vh;
         }
-
-        /* 卡片容器 */
-        .form-card {
-            background-color: #ffffff;
-            width: 100%;
-            max-width: 420px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            padding: 24px;
+        .card { 
+            background: var(--secondary-bg); 
+            padding: 18px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); 
         }
-
-        /* 头部标题 */
-        .form-header {
-            text-align: center;
-            color: #ff6584;
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
+        .title { 
+            font-size: 20px; 
+            font-weight: bold; 
+            margin-bottom: 20px; 
+            text-align: center; 
+            color: #ff69b4; 
         }
-
-        /* 表单组 */
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        /* 双列布局容器 */
-        .form-row {
-            display: flex;
+        /* 两列网格布局 存放6项维度评分 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 15px;
         }
-
-        .form-row .form-group {
-            flex: 1;
-            margin-bottom: 0;
+        .form-item { 
+            margin-bottom: 16px; 
         }
-
-        /* 标签样式 */
-        label {
-            display: block;
-            font-size: 14px;
-            color: #333333;
-            margin-bottom: 6px;
-            font-weight: 500;
+        .form-item.full-width {
+            grid-column: 1 / -1;
         }
-
-        label .required {
-            color: #ff4d4f;
-            margin-left: 2px;
+        label { 
+            display: block; 
+            margin-bottom: 6px; 
+            font-size: 14px; 
+            font-weight: 500; 
         }
-
-        /* 输入框与下拉框通用样式 */
-        input[type="text"], select, textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d9d9d9;
-            border-radius: 6px;
-            font-size: 14px;
-            color: #333333;
-            background-color: #fafafa;
+        input, select, textarea { 
+            width: 100%; 
+            padding: 11px; 
+            border: 1px solid var(--hint); 
+            border-radius: 8px; 
+            font-size: 14px; 
+            background: var(--bg); 
+            color: var(--text); 
             outline: none;
-            transition: all 0.2s;
-            /* 自定义下拉箭头 */
-            appearance: none;
-            -webkit-appearance: none;
         }
-
-        /* 为下拉框添加自定义箭头背景图 */
-        select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://w3.org' viewBox='0 0 24 24' fill='%23666666'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 20px;
-            padding-right: 28px;
+        input::placeholder, textarea::placeholder {
+            color: var(--hint);
         }
-
-        input:focus, select:focus, textarea:focus {
-            border-color: #ff6584;
-            background-color: #ffffff;
-        }
-
-        /* 文本域特殊样式 */
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-            background-color: #ffffff;
-        }
-
-        /* 提交按钮 */
-        .btn-submit {
-            width: 100%;
-            background-color: #ffb4c4; /* 浅粉色 */
-            color: #ffffff;
-            border: none;
-            padding: 14px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
+        button { 
+            width: 100%; 
+            padding: 13px; 
+            background: var(--button-bg); 
+            border: none; 
+            color: var(--button-text); 
+            font-size: 16px; 
+            font-weight: bold; 
+            border-radius: 8px; 
+            margin-top: 8px; 
             cursor: pointer;
-            margin-top: 12px;
-            transition: background-color 0.2s;
+            transition: opacity 0.2s;
         }
-
-        .btn-submit:hover {
-            background-color: #ff99ae; /* 悬停时颜色深一点 */
+        button:active {
+            opacity: 0.85;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
+    <div class="card">
+        <div class="title">💞 桃花谷公榜 · 写车评</div>
 
-    <div class="form-card">
-        <!-- 头部 -->
-        <div class="form-header">
-            💋 桃花谷公榜 · 写车评
-        </div>
-
-        <form onsubmit="event.preventDefault(); alert('提交审核成功！');">
-            <!-- 老师名字 -->
-            <div class="form-group">
-                <label>【老师名字】<span class="required">*</span></label>
-                <input type="text" value="琪琪" required>
+        <div class="form-grid">
+            <!-- 基础资料 通栏 -->
+            <div class="form-item full-width">
+                <label>【老师名字】*</label>
+                <input type="text" id="teacher_name" placeholder="请输入老师名字，如：琪琪" required>
             </div>
 
-            <!-- 人照与颜值评分 -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label>【人照评分】</label>
-                    <select>
-                        <option>9分</option>
-                        <option>9.5分</option>
-                        <option>10分</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>【颜值评分】</label>
-                    <select>
-                        <option>9分</option>
-                        <option>9.5分</option>
-                        <option>10分</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 身材与服务评分 -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label>【身材评分】</label>
-                    <select>
-                        <option>9分</option>
-                        <option>9.5分</option>
-                        <option>10分</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>【服务评分】</label>
-                    <select>
-                        <option selected>9.5分</option>
-                        <option>9分</option>
-                        <option>10分</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 态度与环境评分 -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label>【态度评分】</label>
-                    <select>
-                        <option selected>9.5分</option>
-                        <option>9分</option>
-                        <option>10分</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>【环境评分】</label>
-                    <select>
-                        <option>9分</option>
-                        <option>9.5分</option>
-                        <option>10分</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 综合总评分 -->
-            <div class="form-group">
-                <label>综合总评分 (1-10)*</label>
-                <select required>
-                    <option>⭐⭐⭐⭐ 9分 (优秀)</option>
-                    <option>⭐⭐⭐⭐⭐ 10分 (完美)</option>
+            <!-- 六大核心维度评分 两列布局 -->
+            <div class="form-item">
+                <label>【人照评分】</label>
+                <select id="p_photo">
+                    <option value="10">10分</option>
+                    <option value="9.5">9.5分</option>
+                    <option value="9" selected>9分</option>
+                    <option value="8">8分</option>
+                    <option value="7">7分</option>
+                    <option value="6">6分</option>
                 </select>
             </div>
-
-            <!-- 审核与同步发布 -->
-            <div class="form-row">
-                <div class="-1004361466102">
-                    <label>📌 提交至频道审核</label>
-                    <select>
-                        <option>车评审核😍</option>
-                    </select>
-                </div>
-                <div class="-1004379302585">
-                    <label>💬 同步发布至群组</label>
-                    <select>
-                        <option>桃花谷（车评）</option>
-                    </select>
-                </div>
+            <div class="form-item">
+                <label>【颜值评分】</label>
+                <select id="p_face">
+                    <option value="10">10分</option>
+                    <option value="9.5">9.5分</option>
+                    <option value="9" selected>9分</option>
+                    <option value="8">8分</option>
+                    <option value="7">7分</option>
+                    <option value="6">6分</option>
+                </select>
             </div>
-
-            <!-- 体验评语 -->
-            <div class="form-group">
-                <label>体验评语<span class="required">*</span></label>
-                <textarea placeholder="请写下老师的服务态度、环境和您的真实体验反馈..." required></textarea>
+            <div class="form-item">
+                <label>【身材评分】</label>
+                <select id="p_body">
+                    <option value="10">10分</option>
+                    <option value="9.5">9.5分</option>
+                    <option value="9" selected>9分</option>
+                    <option value="8">8分</option>
+                    <option value="7">7分</option>
+                    <option value="6">6分</option>
+                </select>
             </div>
+            <div class="form-item">
+                <label>【服务评分】</label>
+                <select id="p_service">
+                    <option value="10">10分</option>
+                    <option value="9.5" selected>9.5分</option>
+                    <option value="9">9分</option>
+                    <option value="8">8分</option>
+                    <option value="7">7分</option>
+                    <option value="6">6分</option>
+                </select>
+            </div>
+            <div class="form-item">
+                <label>【态度评分】</label>
+                <select id="p_item">
+                    <option value="10">10分</option>
+                    <option value="9.5" selected>9.5分</option>
+                    <option value="9">9分</option>
+                    <option value="8">8分</option>
+                    <option value="7">7分</option>
+                    <option value="6">6分</option>
+                </select>
+            </div>
+            <div class="form-item">
+                <label>【环境评分】</label>
+                <select id="p_env">
+                    <option value="10">10分</option>
+                    <option value="9.5">9.5分</option>
+                    <option value="9" selected>9分</option>
+                    <option value="8">8分</option>
+                    <option value="7">7分</option>
+                    <option value="6">6分</option>
+                </select>
+            </div>
+        </div>
 
-            <!-- 提交按钮 -->
-            <button type="submit" class="btn-submit">提交审核</button>
-        </form>
+        <div class="form-item">
+            <label>综合总评分 (1-10分)*</label>
+            <select id="score">
+                <option value="10">⭐⭐⭐⭐⭐ 10分 (完美)</option>
+                <option value="9" selected>⭐⭐⭐⭐ 9分 (优秀)</option>
+                <option value="8">⭐⭐⭐ 8分 (良好)</option>
+                <option value="7">⭐⭐ 7分 (普通)</option>
+                <option value="6">⭐ 6分 (一般)</option>
+                <option value="5">5分及以下 (较差)</option>
+            </select>
+        </div>
+
+        <div class="form-item">
+            <label>体验评语*</label>
+            <textarea id="comment" rows="4" placeholder="请写下老师的服务态度、环境和您的真实体验反馈..."></textarea>
+        </div>
+
+        <button id="submitBtn" onclick="doSubmit()">提交审核</button>
     </div>
 
+    <script>
+        // 初始化TG WebApp
+        const tg = window.Telegram.WebApp;
+        const submitBtn = document.getElementById('submitBtn');
+
+        // 适配Telegram系统主题颜色
+        tg.onEvent('themeChanged', () => {
+            document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color);
+            document.documentElement.style.setProperty('--text', tg.themeParams.text_color);
+        })
+        tg.expand();
+        tg.MainButton.hide();
+
+        function doSubmit() {
+            // 获取所有表单值
+            const teacherName = document.getElementById('teacher_name').value.trim();
+            const pPhoto = parseFloat(document.getElementById('p_photo').value);
+            const pFace = parseFloat(document.getElementById('p_face').value);
+            const pBody = parseFloat(document.getElementById('p_body').value);
+            const pService = parseFloat(document.getElementById('p_service').value);
+            const pItem = parseFloat(document.getElementById('p_item').value);
+            const pEnv = parseFloat(document.getElementById('p_env').value);
+            const totalScore = parseInt(document.getElementById('score').value);
+            const comment = document.getElementById('comment').value.trim();
+
+            // 完整表单校验
+            if (!teacherName) {
+                tg.showAlert('请填写老师名字！');
+                return;
+            }
+            if (!comment) {
+                tg.showAlert('请填写体验评语后再提交！');
+                return;
+            }
+
+            // 防止重复提交
+            submitBtn.disabled = true;
+            submitBtn.innerText = '提交中...';
+
+            // 完整数据包（包含全部六项细分评分）
+            const postData = {
+                teacher_name: teacherName,
+                detail_score: {
+                    photo: pPhoto,
+                    face: pFace,
+                    body: pBody,
+                    service: pService,
+                    attitude: pItem,
+                    environment: pEnv
+                },
+                total_score: totalScore,
+                comment: comment,
+                user_id: tg.initDataUnsafe.user?.id || 0,
+                username: tg.initDataUnsafe.user?.username || '匿名用户',
+                first_name: tg.initDataUnsafe.user?.first_name || ''
+            };
+
+            // 发送数据给TG机器人
+            tg.sendData(JSON.stringify(postData));
+            
+            // 提交成功弹窗，延迟关闭窗口
+            setTimeout(() => {
+                tg.showAlert('车评提交成功，等待管理员审核！');
+                tg.close();
+            }, 300);
+        }
+    </script>
 </body>
 </html>
