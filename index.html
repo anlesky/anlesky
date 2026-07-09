@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>提交车评公榜</title>
     <!-- 正确 Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://telegram.org"></script>
     <style>
         :root {
             --bg: var(--tg-theme-bg-color, #f5f5f5);
@@ -186,6 +186,25 @@
             </select>
         </div>
 
+        <!-- 💡 新增：发布设置（包含频道审核与群组发布选项） -->
+        <div class="form-grid">
+            <div class="form-item">
+                <label>📌 提交至频道审核</label>
+                <select id="-1004361466102">
+                    <option value="thg_review_chan" selected>车评审核😍</option>
+                    
+                    
+                </select>
+            </div>
+            <div class="form-item">
+                <label>💬 同步发布至群组</label>
+                <select id="-1004387466129">
+                    <option value="thg_main_group" selected>桃花谷（车评）</option>
+                    
+                </select>
+            </div>
+        </div>
+
         <div class="form-item">
             <label>体验评语*</label>
             <textarea id="comment" rows="4" placeholder="请写下老师的服务态度、环境和您的真实体验反馈..."></textarea>
@@ -201,14 +220,14 @@
 
         // 适配Telegram系统主题颜色
         tg.onEvent('themeChanged', () => {
-            document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color);
-            document.documentElement.style.setProperty('--text', tg.themeParams.text_color);
-        })
+            document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color || '#f5f5f5');
+            document.documentElement.style.setProperty('--text', tg.themeParams.text_color || '#222');
+        });
         tg.expand();
         tg.MainButton.hide();
 
         function doSubmit() {
-            // 获取所有表单值
+            // 获取基础与评分数据
             const teacherName = document.getElementById('teacher_name').value.trim();
             const pPhoto = parseFloat(document.getElementById('p_photo').value);
             const pFace = parseFloat(document.getElementById('p_face').value);
@@ -219,47 +238,36 @@
             const totalScore = parseInt(document.getElementById('score').value);
             const comment = document.getElementById('comment').value.trim();
 
+            // 💡 获取新增的频道与群组配置值
+            const targetChannel = document.getElementById('target_channel').value;
+            const targetGroup = document.getElementById('target_group').value;
+
             // 完整表单校验
             if (!teacherName) {
                 tg.showAlert('请填写老师名字！');
                 return;
             }
             if (!comment) {
-                tg.showAlert('请填写体验评语后再提交！');
+                tg.showAlert('请写下您的真实体验评语！');
+                return;
+            }
+            if (comment.length < 10) {
+                tg.showAlert('体验评语太短，请至少输入10个字。');
                 return;
             }
 
-            // 防止重复提交
+            // 禁用按钮防重复点击
             submitBtn.disabled = true;
-            submitBtn.innerText = '提交中...';
+            submitBtn.innerText = '正在提交...';
 
-            // 完整数据包（包含全部六项细分评分）
-            const postData = {
+            // 封装发送给机器人的数据包
+            const reviewData = {
                 teacher_name: teacherName,
-                detail_score: {
-                    photo: pPhoto,
-                    face: pFace,
-                    body: pBody,
-                    service: pService,
-                    attitude: pItem,
-                    environment: pEnv
-                },
-                total_score: totalScore,
-                comment: comment,
-                user_id: tg.initDataUnsafe.user?.id || 0,
-                username: tg.initDataUnsafe.user?.username || '匿名用户',
-                first_name: tg.initDataUnsafe.user?.first_name || ''
-            };
-
-            // 发送数据给TG机器人
-            tg.sendData(JSON.stringify(postData));
-            
-            // 提交成功弹窗，延迟关闭窗口
-            setTimeout(() => {
-                tg.showAlert('车评提交成功，等待管理员审核！');
-                tg.close();
-            }, 300);
-        }
-    </script>
-</body>
-</html>
+                p_photo: pPhoto,
+                p_face: pFace,
+                p_body: pBody,
+                p_service: pService,
+                p_item: pItem,
+                p_env: pEnv,
+                score: totalScore,
+请谨慎使用此类代码。comment: comment,target_channel: targetChannel, // 对应频道审核项target_group: targetGroup,     // 对应群组发布项submit_time: Math.floor(Date.now() / 1000)};try {// 将 JSON 数据传递给 Telegram Bottg.sendData(JSON.stringify(reviewData));tg.close();} catch (error) {tg.showAlert('提交失败，请确保在 Telegram 客户端内打开此页面。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
