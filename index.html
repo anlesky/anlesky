@@ -100,7 +100,7 @@
         <div class="form-grid">
             <div class="form-item full-width">
                 <label>【老师名字】*</label>
-                <input type="text" id="teacher_name" placeholder="请输入老师名字，如：琪琪" required>
+                <input type="text" id="teacher_name" placeholder="请输入老师名字 required>
             </div>
 
             <div class="form-item">
@@ -316,7 +316,13 @@
                 tg.showAlert("❌ 提交失败: " + error.message);
                 submitBtn.disabled = false;
                 submitBtn.innerText = "提交审核";
-            }
+           // 核心：把数据回传给 TG 机器人后台，并自动关闭弹窗
+            tg.sendData(JSON.stringify(postData));
+            tg.close();
+        }
+    </script>
+</body>
+</html>
         }
     </script>
 </body>
