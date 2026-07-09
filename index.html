@@ -316,9 +316,7 @@
                 tg.showAlert("❌ 提交失败: " + error.message);
                 submitBtn.disabled = false;
                 submitBtn.innerText = "提交审核";
-           // 核心：把数据回传给 TG 机器人后台，并自动关闭弹窗
-            tg.sendData(JSON.stringify(postData));
-            tg.close();
+           
         }
     </script>
 </body>
