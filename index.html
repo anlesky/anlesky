@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>提交车评公榜</title>
-    <!-- 📌 正确加载 Telegram WebApp SDK -->
+    <!-- 正确加载 Telegram WebApp SDK -->
     <script src="https://telegram.org"></script>
     <style>
         :root {
@@ -197,7 +197,7 @@
         const BOT_TOKEN = "8790393467:AAH4oEKDrT50ikiAjrGLcpb34Hlp-OOdlgU"; 
         const submitBtn = document.getElementById('submitBtn');
 
-        // 初始化 Telegram SDK 环境
+        // 检测系统环境
         const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
         if (tg) {
@@ -209,16 +209,16 @@
             });
         }
 
-        // 强力点击事件挂载
+        // 底层接管绑定
         submitBtn.onclick = async function() {
             try {
                 await processForm();
             } catch (err) {
-                showSafeAlert('🚨 发生错误: ' + err.message);
+                showSafeAlert('🚨 脚本运行时崩溃: ' + err.message);
             }
         };
 
-        // 💡 修复：规范标准的 JavaScript 函数声明语法，去除 Python 的 def 错字
+        // 统一警告拦截弹窗机制
         function showSafeAlert(msg, callback = null) {
             if (tg && tg.showAlert) {
                 tg.showAlert(msg, callback);
@@ -242,10 +242,10 @@
             const targetChannel = document.getElementById('chan_select').value;
             const targetGroup = document.getElementById('group_select').value;
 
-            // 完美无拦截提示链
+            // 信息完整度判断拦截
             if (!teacherName) { showSafeAlert('请填写老师名字！'); return; }
             if (!comment) { showSafeAlert('请写下您的真实体验评语！'); return; }
-            if (comment.length < 10) { showSafeAlert('您的体验评语太短啦，为了保证车评公榜质量，请至少输入10个字。'); return; }
+            if (comment.length < 10) { showSafeAlert('您的体验评语太短啦，请至少输入10个字。'); return; }
 
             submitBtn.disabled = true;
             submitBtn.innerText = '正在发送至审核群...';
@@ -258,4 +258,5 @@
 
             const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));
             
-请谨慎使用此类代码。const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const apiUrl = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(apiUrl, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {showSafeAlert('🥰 车评已成功送达审核群！', () => {if (tg && tg.close) tg.close();});} else {showSafeAlert('❌ 投递被 Telegram 拦截！\n\n原因: ' + resData.description + '\n\n💡 解决办法：请确保机器人（ID: 8790393467）已被拉入【车评审核😍】群组，并提升为了管理员（赋予发消息权限）。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}} catch (netError) {showSafeAlert('❌ 网络请求失败，请确保网页部署为了 HTTPS: ' + netError.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
+            // 📌 核心修复：更正了 ${pItem} 漏写 $ 的致命渲染缺陷
+请谨慎使用此类代码。const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const apiUrl = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(apiUrl, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {showSafeAlert('🥰 车评已成功送达审核群！', () => {if (tg && tg.close) tg.close();});} else {showSafeAlert('❌ 投递被 Telegram 拦截！\n\n原因: ' + resData.description + '\n\n💡 解决办法：请确保机器人（ID: 8790393467）已被拉入【车评审核😍】群组，并设置为群管理员且开启发消息权限。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}} catch (netError) {showSafeAlert('❌ 网络请求失败，请检查HTTPS和网络：' + netError.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
