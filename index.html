@@ -256,18 +256,37 @@
                 return;
             }
 
-            // 禁用按钮防重复点击
+            // 防止重复提交
             submitBtn.disabled = true;
-            submitBtn.innerText = '正在提交...';
+            submitBtn.innerText = '提交中...';
 
-            // 封装发送给机器人的数据包
-            const reviewData = {
+            // 完整数据包（包含全部六项细分评分）
+            const postData = {
                 teacher_name: teacherName,
-                p_photo: pPhoto,
-                p_face: pFace,
-                p_body: pBody,
-                p_service: pService,
-                p_item: pItem,
-                p_env: pEnv,
-                score: totalScore,
-请谨慎使用此类代码。comment: comment,target_channel: targetChannel, // 对应频道审核项target_group: targetGroup,     // 对应群组发布项submit_time: Math.floor(Date.now() / 1000)};try {// 将 JSON 数据传递给 Telegram Bottg.sendData(JSON.stringify(reviewData));tg.close();} catch (error) {tg.showAlert('提交失败，请确保在 Telegram 客户端内打开此页面。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
+                detail_score: {
+                    photo: pPhoto,
+                    face: pFace,
+                    body: pBody,
+                    service: pService,
+                    attitude: pItem,
+                    environment: pEnv
+                },
+                total_score: totalScore,
+                comment: comment,
+                user_id: tg.initDataUnsafe.user?.id || 0,
+                username: tg.initDataUnsafe.user?.username || '匿名用户',
+                first_name: tg.initDataUnsafe.user?.first_name || ''
+            };
+
+            // 发送数据给TG机器人
+            tg.sendData(JSON.stringify(postData));
+            
+            // 提交成功弹窗，延迟关闭窗口
+            setTimeout(() => {
+                tg.showAlert('车评提交成功，等待管理员审核！');
+                tg.close();
+            }, 300);
+        }
+    </script>
+</body>
+</html>
