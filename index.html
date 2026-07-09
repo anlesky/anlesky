@@ -40,7 +40,6 @@
             text-align: center; 
             color: #ff69b4; 
         }
-        /* 两列网格布局 存放6项维度评分 */
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -99,13 +98,11 @@
         <div class="title">💞 桃花谷公榜 · 写车评</div>
 
         <div class="form-grid">
-            <!-- 基础资料 通栏 -->
             <div class="form-item full-width">
                 <label>【老师名字】*</label>
                 <input type="text" id="teacher_name" placeholder="请输入老师名字，如：琪琪" required>
             </div>
 
-            <!-- 六大核心维度评分 两列布局 -->
             <div class="form-item">
                 <label>【人照评分】</label>
                 <select id="p_photo">
@@ -186,21 +183,18 @@
             </select>
         </div>
 
-        <!-- 💡 新增：发布设置（包含频道审核与群组发布选项） -->
+        <!-- 发布设置：保留您的真实目的地ID，增加 class 便于 JS 稳定索引 -->
         <div class="form-grid">
             <div class="form-item">
                 <label>📌 提交至频道审核</label>
-                <select id="-1004361466102">
-                    <option value="thg_review_chan" selected>车评审核😍</option>
-                    
-                    
+                <select id="chan_select" class="target-channel-id">
+                    <option value="-1004361466102" selected>车评审核😍</option>
                 </select>
             </div>
             <div class="form-item">
                 <label>💬 同步发布至群组</label>
-                <select id="-1004387466129">
-                    <option value="thg_main_group" selected>桃花谷（车评）</option>
-                    
+                <select id="group_select" class="target-group-id">
+                    <option value="-1004387466129" selected>桃花谷（车评）</option>
                 </select>
             </div>
         </div>
@@ -214,11 +208,9 @@
     </div>
 
     <script>
-        // 初始化TG WebApp
         const tg = window.Telegram.WebApp;
         const submitBtn = document.getElementById('submitBtn');
 
-        // 适配Telegram系统主题颜色
         tg.onEvent('themeChanged', () => {
             document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color || '#f5f5f5');
             document.documentElement.style.setProperty('--text', tg.themeParams.text_color || '#222');
@@ -227,7 +219,6 @@
         tg.MainButton.hide();
 
         function doSubmit() {
-            // 获取基础与评分数据
             const teacherName = document.getElementById('teacher_name').value.trim();
             const pPhoto = parseFloat(document.getElementById('p_photo').value);
             const pFace = parseFloat(document.getElementById('p_face').value);
@@ -238,11 +229,10 @@
             const totalScore = parseInt(document.getElementById('score').value);
             const comment = document.getElementById('comment').value.trim();
 
-            // 💡 获取新增的频道与群组配置值
-            const targetChannel = document.getElementById('target_channel').value;
-            const targetGroup = document.getElementById('target_group').value;
+            // 直接读取绑定的真实 Telegram 目标 ID
+            const targetChannel = document.getElementById('chan_select').value;
+            const targetGroup = document.getElementById('group_select').value;
 
-            // 完整表单校验
             if (!teacherName) {
                 tg.showAlert('请填写老师名字！');
                 return;
@@ -256,37 +246,147 @@
                 return;
             }
 
-            // 防止重复提交
             submitBtn.disabled = true;
-            submitBtn.innerText = '提交中...';
+            submitBtn.innerText = '正在提交...';
 
-            // 完整数据包（包含全部六项细分评分）
-            const postData = {
+            const reviewData = {
                 teacher_name: teacherName,
-                detail_score: {
-                    photo: pPhoto,
-                    face: pFace,
-                    body: pBody,
-                    service: pService,
-                    attitude: pItem,
-                    environment: pEnv
-                },
-                total_score: totalScore,
+                p_photo: pPhoto,
+                p_face: pFace,
+                p_body: pBody,
+                p_service: pService,
+                p_item: pItem,
+                p_env: pEnv,
+                score: totalScore,
                 comment: comment,
-                user_id: tg.initDataUnsafe.user?.id || 0,
-                username: tg.initDataUnsafe.user?.username || '匿名用户',
-                first_name: tg.initDataUnsafe.user?.first_name || ''
+                target_channel: targetChannel, // 传回真实频道 ID: -1004361466102
+                target_group: targetGroup,     // 传回真实群组 ID: -1004387466129
+                submit_time: Math.floor(Date.now() / 1000)
             };
 
-            // 发送数据给TG机器人
-            tg.sendData(JSON.stringify(postData));
-            
-            // 提交成功弹窗，延迟关闭窗口
-            setTimeout(() => {
-                tg.showAlert('车评提交成功，等待管理员审核！');
+            try {
+                tg.sendData(JSON.stringify(reviewData));
                 tg.close();
-            }, 300);
-        }
-    </script>
-</body>
-</html>
+            } catch (error) {
+                tg.showAlert('提交失败，请在 Telegram 客户端内打开。');
+                submitBtn.disabled = false;
+请谨慎使用此类代码。submitBtn.innerText = '提交审核';}}
+---
+
+### 2. 🐍 Python 后端适配逻辑（基于 python-telegram-bot）
+
+既然前端回传的数据中已经直接包含了 `target_channel` 和 `target_group` 的真实数字 ID，后端**不再需要做映射表**，直接引用变量发送即可：
+
+```python
+import json
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+
+async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    raw_data = update.message.web_app_data.data
+    data = json.loads(raw_data)
+    
+    teacher = data.get("teacher_name")
+    score = data.get("score")
+    comment = data.get("comment")
+    
+    # 直接拿到真实的数字群组/频道 ID 字符串
+    target_channel_id = data.get("target_channel")  # "-1004361466102"
+    target_group_id = data.get("target_group")      # "-1004387466129"
+    
+    # 提取六大评分
+    p_photo = data.get("p_photo", 9)
+    p_face = data.get("p_face", 9)
+    p_body = data.get("p_body", 9)
+    p_service = data.get("p_service", 9.5)
+    p_item = data.get("p_item", 9.5)
+    p_env = data.get("p_env", 9)
+
+    stars = "⭐" * int(score // 2 if score > 5 else 1)
+    
+    # 构造推送给管理员看的消息（附带具体的六大项）
+    review_text = (
+        f"💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n"
+        f"👤 <b>老师名字：</b> {teacher}\n"
+        f"📊 <b>综合评分：</b> {score} 分 {stars}\n"
+        f"📈 <b>细分维度：</b>\n"
+        f" ├ 人照: {p_photo} | 颜值: {p_face} | 身材: {p_body}\n"
+        f" └ 服务: {p_service} | 态度: {p_item} | 环境: {p_env}\n\n"
+        f"📝 <b>体验评语：</b> {comment}\n\n"
+        f"👤 <b>提交用户：</b> @{update.effective_user.username or '匿名'}\n"
+    )
+    
+    # 将目的群组 ID 和核心信息绑定到按钮的回调中
+    # 格式：pub_群组ID|老师名字|综合分
+    callback_payload = f"pub_{target_group_id}|{teacher}|{score}"
+    
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ 审核通过并发布", callback_data=callback_payload),
+            InlineKeyboardButton("❌ 拒绝", callback_data="pub_reject")
+        ]
+    ]
+    
+    try:
+        # 发送到对应的审核频道 (需要转成 int)
+        await context.bot.send_message(
+            chat_id=int(target_channel_id),
+            text=review_text,
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        await update.message.reply_text("🥰 您的车评已提交至审核频道，通过后将广播至交流群！")
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ 推送失败，请确保机器人已加入频道并设置为管理员。")
+
+async def handle_audit_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "pub_reject":
+        await query.edit_message_text(text=f"{query.message.text_html}\n\n❌ <b>结果：已被管理员拒绝。</b>", parse_mode="HTML")
+        return
+        
+    if query.data.startswith("pub_"):
+        # 分离参数
+        payload = query.data.replace("pub_", "")
+        target_group_id, teacher, score = payload.split("|")
+        
+        # 1. 盖章修改审核频道内的消息状态
+        await query.edit_message_text(
+            text=f"{query.message.text_html}\n\n✅ <b>结果：审核已通过，已同步投递至群组。</b>", 
+            parse_mode="HTML"
+        )
+        
+        # 2. 从原文本提取车评评语
+        orig_text = query.message.text
+        comment_part = "暂无评语"
+        if "体验评语：" in orig_text:
+            comment_part = orig_text.split("体验评语：")[1].split("提交用户：")[0].strip()
+            
+        # 3. 组装给公榜大群看的高级排版
+        stars = "⭐" * int(int(score) // 2 if int(score) > 5 else 1)
+        group_publish_text = (
+            f"💞 <b>桃花谷公榜 · 真实车评发布</b> 💞\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"👤 <b>【佳丽留名】</b> {teacher}\n"
+            f"📊 <b>【综合评分】</b> {score} 分 {stars}\n"
+            f"📝 <b>【真实车评】</b>\n"
+            f"<i>{comment_part}</i>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🔥 欢迎各位车友提交真实反馈！"
+        )
+        
+        # 发送到目标同步群组
+        try:
+            await context.bot.send_message(
+                chat_id=int(target_group_id),
+                text=group_publish_text,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"发送到群组失败: {e}")
+
+# 在 bot 启动流程中注册：
+# app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
+# app.add_handler(CallbackQueryHandler(handle_audit_buttons, pattern="^pub_"))
