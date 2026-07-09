@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>提交车评公榜</title>
-    <!-- 📌 核心修复：引入官方正确的 Telegram WebApp SDK 路径 -->
+    <!-- 📌 正确加载 Telegram WebApp SDK -->
     <script src="https://telegram.org"></script>
     <style>
         :root {
@@ -16,9 +16,7 @@
             --button-text: var(--tg-theme-button-text-color, #fff);
             --border: var(--tg-theme-secondary-bg-color, #ddd);
         }
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
         body { 
             background: var(--bg); 
             color: var(--text); 
@@ -46,12 +44,8 @@
             gap: 12px;
             margin-bottom: 15px;
         }
-        .form-item { 
-            margin-bottom: 16px; 
-        }
-        .form-item.full-width {
-            grid-column: 1 / -1;
-        }
+        .form-item { margin-bottom: 16px; }
+        .form-item.full-width { grid-column: 1 / -1; }
         label { 
             display: block; 
             margin-bottom: 6px; 
@@ -68,9 +62,7 @@
             color: var(--text); 
             outline: none;
         }
-        input::placeholder, textarea::placeholder {
-            color: var(--hint);
-        }
+        input::placeholder, textarea::placeholder { color: var(--hint); }
         button { 
             width: 100%; 
             padding: 13px; 
@@ -84,13 +76,8 @@
             cursor: pointer;
             transition: opacity 0.2s;
         }
-        button:active {
-            opacity: 0.85;
-        }
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+        button:active { opacity: 0.85; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -207,37 +194,39 @@
     </div>
 
     <script>
-        // 初始化全局变量
-        const tg = window.Telegram ? window.Telegram.WebApp : null;
-        const submitBtn = document.getElementById('submitBtn');
+        // 配置专区
         const BOT_TOKEN = "8790393467:AAH4oEKDrT50ikiAjrGLcpb34Hlp-OOdlgU"; 
+        const submitBtn = document.getElementById('submitBtn');
 
-        // 适配主题
-        if (tg) {
+        // 安全尝试读取 TG 环境
+        let tg = null;
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
+            tg.expand();
+            if (tg.MainButton) tg.MainButton.hide();
+            
+            // 颜色主题同步
             tg.onEvent('themeChanged', () => {
                 document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color || '#f5f5f5');
                 document.documentElement.style.setProperty('--text', tg.themeParams.text_color || '#222');
             });
-            tg.expand();
-            tg.MainButton.hide();
         }
 
-        // 使用高级事件监听器绑定按钮点击，防止静默死锁
-        submitBtn.addEventListener('click', async function() {
+        // 绑定按钮，利用最底层原生的方式，拦截任何不工作的问题
+        submitBtn.onclick = async function() {
             try {
-                await doSubmit();
-            } catch (globalError) {
-                alert('🚨 致命运行时错误: ' + globalError.message);
+                // 环境兜底检查机制
+                if (!window.Telegram || !window.Telegram.WebApp) {
+                    alert('⚠️ 环境未就绪！\n本页面为 Telegram 专用 WebApp，请复制此网页链接发送给任意 TG 好友，并在 Telegram 聊天框内点击打开。');
+                    return;
+                }
+                await processForm();
+            } catch (err) {
+                alert('🚨 运行时崩溃: ' + err.message);
             }
-        });
+        };
 
-        async function doSubmit() {
-            // 环境检查机制
-            if (!window.Telegram || !window.Telegram.WebApp) {
-                alert('⚠️ 运行环境拦截：未检测到 Telegram 浏览器环境。请务必将网页部署为 HTTPS 并通过 Telegram 客户端内部打开测试。');
-                return;
-            }
-
+        async function processForm() {
             const teacherName = document.getElementById('teacher_name').value.trim();
             const pPhoto = parseFloat(document.getElementById('p_photo').value);
             const pFace = parseFloat(document.getElementById('p_face').value);
@@ -251,18 +240,20 @@
             const targetChannel = document.getElementById('chan_select').value;
             const targetGroup = document.getElementById('group_select').value;
 
-            // 表单合规验证
-            if (!teacherName) { window.Telegram.WebApp.showAlert('请填写老师名字！'); return; }
-            if (!comment) { window.Telegram.WebApp.showAlert('请写下您的真实体验评语！'); return; }
-            if (comment.length < 10) { window.Telegram.WebApp.showAlert('体验评语太短，请至少输入10个字。'); return; return; }
+            // 基础校验
+            if (!teacherName) { alert('请输入老师名字！'); return; }
+            if (!comment) { alert('请输入体验评语！'); return; }
+            if (comment.length < 10) { alert('体验评语太短，请至少输入10个字！'); return; }
 
-            // 状态锁定防止重复提交
+            // 按钮防连击状态锁定
             submitBtn.disabled = true;
-            submitBtn.innerText = '正在发送至审核群...';
+            submitBtn.innerText = '发送中，请稍后...';
 
-            // 格式化文本结构
-            const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));
+            // 获取提交人身份快照
             let userMarkup = "快捷访问用户";
-            
             if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-请谨慎使用此类代码。const user = window.Telegram.WebApp.initDataUnsafe.user;userMarkup = user.username ? @${user.username} : ${user.first_name || '匿名'} (ID: <code>${user.id}</code>);}const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const url = https://telegram.org{BOT_TOKEN}/sendMessage;// 纯前端异步发送请求const response = await fetch(url, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {window.Telegram.WebApp.showAlert('🥰 车评已成功送达审核群！', () => {window.Telegram.WebApp.close();});} else {alert('❌ Telegram API 拒发消息！原因提示：' + resData.description + '\n\n💡 解决办法：请确保机器人 (ID: 8790393467) 已经被拉进群组，且已被设为管理员并给到了发送消息权限。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
+                const user = window.Telegram.WebApp.initDataUnsafe.user;
+                userMarkup = user.username ? `@${user.username}` : `${user.first_name || '车友'} (ID: <code>${user.id}</code>)`;
+            }
+
+请谨慎使用此类代码。const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));// 完美无碎字符 HTML 拼接const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;// 调用 TG Bot 核心发送 APIconst apiUrl = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(apiUrl, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {if (window.Telegram.WebApp.showAlert) {window.Telegram.WebApp.showAlert('🥰 车评已成功送达审核群！', () => {window.Telegram.WebApp.close();});} else {alert('🥰 车评已成功送达审核群！');}} else {// 如果机器人没在群里，这里会100%拦截并明确解释原因alert('❌ 投递被 Telegram 拦截！\n\n原因: ' + resData.description + '\n\n💡 解决办法：请把您的机器人拉进【车评审核😍】群组，并设置为管理员（开启发送消息权限）！');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}} catch (netError) {alert('❌ 网络请求失败，请检查网络或HTTPS证书设置: ' + netError.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
