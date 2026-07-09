@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>提交车评公榜</title>
-    <!-- 正确 Telegram WebApp SDK -->
-    <script src="https://anlesky.github.io/anlesky"></script>
+    <!-- 📌 核心修复：引入官方正确的 Telegram WebApp SDK 路径 -->
+    <script src="https://telegram.org"></script>
     <style>
         :root {
             --bg: var(--tg-theme-bg-color, #f5f5f5);
@@ -203,25 +203,41 @@
             <textarea id="comment" rows="4" placeholder="请写下老师的服务态度、环境和您的真实体验反馈..."></textarea>
         </div>
 
-        <button id="submitBtn" onclick="doSubmit()">提交审核</button>
+        <button id="submitBtn">提交审核</button>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
+        // 初始化全局变量
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
         const submitBtn = document.getElementById('submitBtn');
-
-        // 🛠️ 您的真实 Bot Token
         const BOT_TOKEN = "8790393467:AAH4oEKDrT50ikiAjrGLcpb34Hlp-OOdlgU"; 
 
-        tg.onEvent('themeChanged', () => {
-            document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color || '#f5f5f5');
-            document.documentElement.style.setProperty('--text', tg.themeParams.text_color || '#222');
-        });
-        tg.expand();
-        tg.MainButton.hide();
+        // 适配主题
+        if (tg) {
+            tg.onEvent('themeChanged', () => {
+                document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color || '#f5f5f5');
+                document.documentElement.style.setProperty('--text', tg.themeParams.text_color || '#222');
+            });
+            tg.expand();
+            tg.MainButton.hide();
+        }
 
-        // 💡 修复关键：修正了错误的 async 声明语法，并修正了文本中 p_item 的变量插值
+        // 使用高级事件监听器绑定按钮点击，防止静默死锁
+        submitBtn.addEventListener('click', async function() {
+            try {
+                await doSubmit();
+            } catch (globalError) {
+                alert('🚨 致命运行时错误: ' + globalError.message);
+            }
+        });
+
         async function doSubmit() {
+            // 环境检查机制
+            if (!window.Telegram || !window.Telegram.WebApp) {
+                alert('⚠️ 运行环境拦截：未检测到 Telegram 浏览器环境。请务必将网页部署为 HTTPS 并通过 Telegram 客户端内部打开测试。');
+                return;
+            }
+
             const teacherName = document.getElementById('teacher_name').value.trim();
             const pPhoto = parseFloat(document.getElementById('p_photo').value);
             const pFace = parseFloat(document.getElementById('p_face').value);
@@ -235,25 +251,18 @@
             const targetChannel = document.getElementById('chan_select').value;
             const targetGroup = document.getElementById('group_select').value;
 
-            if (!teacherName) { tg.showAlert('请填写老师名字！'); return; }
-            if (!comment) { tg.showAlert('请写下您的真实体验评语！'); return; }
-            if (comment.length < 10) { tg.showAlert('体验评语太短，请至少输入10个字。'); return; }
+            // 表单合规验证
+            if (!teacherName) { window.Telegram.WebApp.showAlert('请填写老师名字！'); return; }
+            if (!comment) { window.Telegram.WebApp.showAlert('请写下您的真实体验评语！'); return; }
+            if (comment.length < 10) { window.Telegram.WebApp.showAlert('体验评语太短，请至少输入10个字。'); return; return; }
 
+            // 状态锁定防止重复提交
             submitBtn.disabled = true;
             submitBtn.innerText = '正在发送至审核群...';
 
-            // 组装要在审核群显示的卡片格式
+            // 格式化文本结构
             const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));
             let userMarkup = "快捷访问用户";
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                const user = tg.initDataUnsafe.user;
-                userMarkup = user.username ? `@${user.username}` : `${user.first_name || '匿名用户'} (ID: <code>${user.id}</code>)`;
-            }
             
-            const reviewHtmlText = `💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n` +
-                                  `👤 <b>老师名字：</b> ${teacherName}\n` +
-                                  `📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n` +
-                                  `📈 <b>细分维度：</b>\n` +
-                                  ` ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n` +
-                                  ` └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n` +
-请谨慎使用此类代码。📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const url = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(url, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {tg.showAlert('🥰 车评已成功送达审核群，请等待管理员审核放行！', () => {tg.close();});} else {throw new Error(resData.description || 'API 请求被阻断');}} catch (error) {tg.showAlert('❌ 投递失败！原因：' + error.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
+            if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+请谨慎使用此类代码。const user = window.Telegram.WebApp.initDataUnsafe.user;userMarkup = user.username ? @${user.username} : ${user.first_name || '匿名'} (ID: <code>${user.id}</code>);}const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const url = https://telegram.org{BOT_TOKEN}/sendMessage;// 纯前端异步发送请求const response = await fetch(url, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {window.Telegram.WebApp.showAlert('🥰 车评已成功送达审核群！', () => {window.Telegram.WebApp.close();});} else {alert('❌ Telegram API 拒发消息！原因提示：' + resData.description + '\n\n💡 解决办法：请确保机器人 (ID: 8790393467) 已经被拉进群组，且已被设为管理员并给到了发送消息权限。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
