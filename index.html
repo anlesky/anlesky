@@ -210,7 +210,7 @@
         const tg = window.Telegram.WebApp;
         const submitBtn = document.getElementById('submitBtn');
 
-        // 🛠️ 核心必填：请在此处填入从 @BotFather 那里获得的机器人 Token 字符串
+        // 🛠️ 您的真实 Bot Token
         const BOT_TOKEN = "8790393467:AAH4oEKDrT50ikiAjrGLcpb34Hlp-OOdlgU"; 
 
         tg.onEvent('themeChanged', () => {
@@ -220,7 +220,8 @@
         tg.expand();
         tg.MainButton.hide();
 
-        async def function doSubmit() {
+        // 💡 修复关键：修正了错误的 async 声明语法，并修正了文本中 p_item 的变量插值
+        async function doSubmit() {
             const teacherName = document.getElementById('teacher_name').value.trim();
             const pPhoto = parseFloat(document.getElementById('p_photo').value);
             const pFace = parseFloat(document.getElementById('p_face').value);
@@ -241,16 +242,18 @@
             submitBtn.disabled = true;
             submitBtn.innerText = '正在发送至审核群...';
 
-            // 1. 在前端直接组装好渲染漂亮的 HTML 排版文本
+            // 组装要在审核群显示的卡片格式
             const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));
-            const userMarkup = tg.initDataUnsafe.user ? `@${tg.initDataUnsafe.user.username || ''} (${tg.initDataUnsafe.user.first_name || '匿名'})` : "快捷访问用户";
+            let userMarkup = "快捷访问用户";
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                const user = tg.initDataUnsafe.user;
+                userMarkup = user.username ? `@${user.username}` : `${user.first_name || '匿名用户'} (ID: <code>${user.id}</code>)`;
+            }
             
             const reviewHtmlText = `💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n` +
                                   `👤 <b>老师名字：</b> ${teacherName}\n` +
                                   `📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n` +
                                   `📈 <b>细分维度：</b>\n` +
                                   ` ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n` +
-                                  ` └ 服务: ${pService} | 态度: {pItem} | 环境: ${pEnv}\n\n` +
-                                  `📝 <b>体验评语：</b> ${comment}\n\n` +
-                                  `🗣️ <b>提交用户：</b> ${userMarkup}\n` +
-请谨慎使用此类代码。⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;// 2. 利用纯前端 Fetch 异步请求，绕过服务器，直接轰炸 Telegram 官方 APIconst url = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(url, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel, // 直接投递到前端选中的审核频道 -1004361466102text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {tg.showAlert('🥰 车评已成功送达审核群，请等待管理员审核放行！', () => {tg.close(); // 成功后弹窗，用户点击确定后关闭网页});} else {throw new Error(resData.description || '未知API阻断');}} catch (error) {tg.showAlert('❌ 投递失败！原因：' + error.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
+                                  ` └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n` +
+请谨慎使用此类代码。📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const url = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(url, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {tg.showAlert('🥰 车评已成功送达审核群，请等待管理员审核放行！', () => {tg.close();});} else {throw new Error(resData.description || 'API 请求被阻断');}} catch (error) {tg.showAlert('❌ 投递失败！原因：' + error.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
