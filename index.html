@@ -197,7 +197,7 @@
         const BOT_TOKEN = "8790393467:AAH4oEKDrT50ikiAjrGLcpb34Hlp-OOdlgU"; 
         const submitBtn = document.getElementById('submitBtn');
 
-        // 初始化 Telegram SDK 接口环境
+        // 初始化 Telegram SDK 环境
         const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
         if (tg) {
@@ -209,7 +209,7 @@
             });
         }
 
-        // 强力点击接管
+        // 强力点击事件挂载
         submitBtn.onclick = async function() {
             try {
                 await processForm();
@@ -218,8 +218,8 @@
             }
         };
 
-        // 💡 封装双兼容弹窗：优先调用 TG 原生精致弹窗，普通浏览器降级用传统弹窗
-        def function showSafeAlert(msg, callback = null) {
+        // 💡 修复：规范标准的 JavaScript 函数声明语法，去除 Python 的 def 错字
+        function showSafeAlert(msg, callback = null) {
             if (tg && tg.showAlert) {
                 tg.showAlert(msg, callback);
             } else {
@@ -242,7 +242,7 @@
             const targetChannel = document.getElementById('chan_select').value;
             const targetGroup = document.getElementById('group_select').value;
 
-            // 🛠️ 核心改进：替换所有原生拦截，改用防拦截的全局安全弹窗
+            // 完美无拦截提示链
             if (!teacherName) { showSafeAlert('请填写老师名字！'); return; }
             if (!comment) { showSafeAlert('请写下您的真实体验评语！'); return; }
             if (comment.length < 10) { showSafeAlert('您的体验评语太短啦，为了保证车评公榜质量，请至少输入10个字。'); return; }
@@ -256,4 +256,6 @@
                 userMarkup = user.username ? `@${user.username}` : `${user.first_name || '车友'} (ID: <code>${user.id}</code>)`;
             }
 
-请谨慎使用此类代码。const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const apiUrl = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(apiUrl, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {showSafeAlert('🥰 车评已成功送达审核群！', () => {if (tg && tg.close) tg.close();});} else {showSafeAlert('❌ 投递被 Telegram 拦截！\n\n原因: ' + resData.description + '\n\n请确保机器人已被拉进该审核群并提升为管理员。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}} catch (netError) {showSafeAlert('❌ 网络请求失败: ' + netError.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
+            const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));
+            
+请谨慎使用此类代码。const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const apiUrl = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(apiUrl, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {showSafeAlert('🥰 车评已成功送达审核群！', () => {if (tg && tg.close) tg.close();});} else {showSafeAlert('❌ 投递被 Telegram 拦截！\n\n原因: ' + resData.description + '\n\n💡 解决办法：请确保机器人（ID: 8790393467）已被拉入【车评审核😍】群组，并提升为了管理员（赋予发消息权限）。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}} catch (netError) {showSafeAlert('❌ 网络请求失败，请确保网页部署为了 HTTPS: ' + netError.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
