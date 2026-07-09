@@ -194,37 +194,39 @@
     </div>
 
     <script>
-        // 配置专区
         const BOT_TOKEN = "8790393467:AAH4oEKDrT50ikiAjrGLcpb34Hlp-OOdlgU"; 
         const submitBtn = document.getElementById('submitBtn');
 
-        // 安全尝试读取 TG 环境
-        let tg = null;
-        if (window.Telegram && window.Telegram.WebApp) {
-            tg = window.Telegram.WebApp;
+        // 初始化 Telegram SDK 接口环境
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+        if (tg) {
             tg.expand();
             if (tg.MainButton) tg.MainButton.hide();
-            
-            // 颜色主题同步
             tg.onEvent('themeChanged', () => {
                 document.documentElement.style.setProperty('--bg', tg.themeParams.bg_color || '#f5f5f5');
                 document.documentElement.style.setProperty('--text', tg.themeParams.text_color || '#222');
             });
         }
 
-        // 绑定按钮，利用最底层原生的方式，拦截任何不工作的问题
+        // 强力点击接管
         submitBtn.onclick = async function() {
             try {
-                // 环境兜底检查机制
-                if (!window.Telegram || !window.Telegram.WebApp) {
-                    alert('⚠️ 环境未就绪！\n本页面为 Telegram 专用 WebApp，请复制此网页链接发送给任意 TG 好友，并在 Telegram 聊天框内点击打开。');
-                    return;
-                }
                 await processForm();
             } catch (err) {
-                alert('🚨 运行时崩溃: ' + err.message);
+                showSafeAlert('🚨 发生错误: ' + err.message);
             }
         };
+
+        // 💡 封装双兼容弹窗：优先调用 TG 原生精致弹窗，普通浏览器降级用传统弹窗
+        def function showSafeAlert(msg, callback = null) {
+            if (tg && tg.showAlert) {
+                tg.showAlert(msg, callback);
+            } else {
+                alert(msg);
+                if (callback) callback();
+            }
+        }
 
         async function processForm() {
             const teacherName = document.getElementById('teacher_name').value.trim();
@@ -240,20 +242,18 @@
             const targetChannel = document.getElementById('chan_select').value;
             const targetGroup = document.getElementById('group_select').value;
 
-            // 基础校验
-            if (!teacherName) { alert('请输入老师名字！'); return; }
-            if (!comment) { alert('请输入体验评语！'); return; }
-            if (comment.length < 10) { alert('体验评语太短，请至少输入10个字！'); return; }
+            // 🛠️ 核心改进：替换所有原生拦截，改用防拦截的全局安全弹窗
+            if (!teacherName) { showSafeAlert('请填写老师名字！'); return; }
+            if (!comment) { showSafeAlert('请写下您的真实体验评语！'); return; }
+            if (comment.length < 10) { showSafeAlert('您的体验评语太短啦，为了保证车评公榜质量，请至少输入10个字。'); return; }
 
-            // 按钮防连击状态锁定
             submitBtn.disabled = true;
-            submitBtn.innerText = '发送中，请稍后...';
+            submitBtn.innerText = '正在发送至审核群...';
 
-            // 获取提交人身份快照
             let userMarkup = "快捷访问用户";
-            if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-                const user = window.Telegram.WebApp.initDataUnsafe.user;
+            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                const user = tg.initDataUnsafe.user;
                 userMarkup = user.username ? `@${user.username}` : `${user.first_name || '车友'} (ID: <code>${user.id}</code>)`;
             }
 
-请谨慎使用此类代码。const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));// 完美无碎字符 HTML 拼接const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;// 调用 TG Bot 核心发送 APIconst apiUrl = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(apiUrl, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {if (window.Telegram.WebApp.showAlert) {window.Telegram.WebApp.showAlert('🥰 车评已成功送达审核群！', () => {window.Telegram.WebApp.close();});} else {alert('🥰 车评已成功送达审核群！');}} else {// 如果机器人没在群里，这里会100%拦截并明确解释原因alert('❌ 投递被 Telegram 拦截！\n\n原因: ' + resData.description + '\n\n💡 解决办法：请把您的机器人拉进【车评审核😍】群组，并设置为管理员（开启发送消息权限）！');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}} catch (netError) {alert('❌ 网络请求失败，请检查网络或HTTPS证书设置: ' + netError.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
+请谨慎使用此类代码。const stars = "⭐".repeat(Math.max(1, Math.floor(totalScore / 2)));const reviewHtmlText = 💞 <b>【桃花谷公榜 · 待审核车评】</b>\n\n +👤 <b>老师名字：</b> ${teacherName}\n +📊 <b>综合评分：</b> ${totalScore} 分 ${stars}\n +📈 <b>细分维度：</b>\n + ├ 人照: ${pPhoto} | 颜值: ${pFace} | 身材: ${pBody}\n + └ 服务: ${pService} | 态度: ${pItem} | 环境: ${pEnv}\n\n +📝 <b>体验评语：</b> ${comment}\n\n +🗣️ <b>提交用户：</b> ${userMarkup}\n +⚙️ <b>同步目标群：</b> <code>${targetGroup}</code>;const apiUrl = https://telegram.org{BOT_TOKEN}/sendMessage;try {const response = await fetch(apiUrl, {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({chat_id: targetChannel,text: reviewHtmlText,parse_mode: 'HTML'})});const resData = await response.json();if (resData.ok) {showSafeAlert('🥰 车评已成功送达审核群！', () => {if (tg && tg.close) tg.close();});} else {showSafeAlert('❌ 投递被 Telegram 拦截！\n\n原因: ' + resData.description + '\n\n请确保机器人已被拉进该审核群并提升为管理员。');submitBtn.disabled = false;submitBtn.innerText = '提交审核';}} catch (netError) {showSafeAlert('❌ 网络请求失败: ' + netError.message);submitBtn.disabled = false;submitBtn.innerText = '提交审核';}}
